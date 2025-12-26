@@ -197,7 +197,7 @@ with tab2:
         ).properties(width=350, height=300)
         st.altair_chart(chart_state, use_container_width=False)
 
-    st.subheader("📊 Top 10 clientes por total facturado")
+    st.subheader("📊 Evolución mensual por moneda")
     if not df_filtered.empty:
-        df_clients_sum = df_filtered.groupby("name", as_index=False)["total"].sum().sort_values("total", ascending=False).head(10)
-        chart_clients = alt.Chart(df_clients_sum).mark_bar().encode(
+        df_month_currency = df_filtered.copy()
+        df_month_currency["month"] = pd.to_datetime(df_month_currency["invoice_date"]).dt.to_period("M").dt.to
