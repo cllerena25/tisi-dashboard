@@ -1,0 +1,1 @@
+DB_URI = "mysql+pymysql://tisi_app:TisiApp2025!@localhost:3307/tisi_facturas"

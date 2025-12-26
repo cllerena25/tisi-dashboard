@@ -1,0 +1,6 @@
+sqlalchemy
+pymysql
+matplotlib
+pandas
+openpyxl
+reportlab
