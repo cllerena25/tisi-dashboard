@@ -4,6 +4,7 @@ import mysql.connector
 import altair as alt
 from io import BytesIO
 from datetime import date, timedelta
+from fpdf import FPDF
 
 # --------------------------------------
 # Configuración general de la página
@@ -34,6 +35,23 @@ def convert_df_to_excel(df, sheet_name="Reporte"):
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
         df.to_excel(writer, index=False, sheet_name=sheet_name)
     return output.getvalue()
+
+def convert_df_to_pdf(df):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=10)
+    col_width = pdf.w / (len(df.columns) + 1)
+    row_height = pdf.font_size * 1.5
+    # Encabezados
+    for col in df.columns:
+        pdf.cell(col_width, row_height, col, border=1)
+    pdf.ln(row_height)
+    # Filas
+    for i in range(len(df)):
+        for col in df.columns:
+            pdf.cell(col_width, row_height, str(df.iloc[i][col]), border=1)
+        pdf.ln(row_height)
+    return pdf.output(dest="S").encode("latin-1")
 
 @st.cache_data(ttl=300)
 def load_invoices():
@@ -153,6 +171,7 @@ with tab1:
     else:
         st.dataframe(df_filtered[["invoice_number","ruc","name","invoice_date","total","currency","status","category","description"]], use_container_width=True)
         st.download_button("📥 Exportar filtradas a Excel", data=convert_df_to_excel(df_filtered,"Facturas filtradas"), file_name="facturas_filtradas.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        st.download_button("📄 Exportar filtradas a PDF", data=convert_df_to_pdf(df_filtered), file_name="facturas_filtradas.pdf", mime="application/pdf")
 
 # Tab 2
 with tab2:
@@ -182,18 +201,3 @@ with tab2:
     if not df_filtered.empty:
         df_clients_sum = df_filtered.groupby("name", as_index=False)["total"].sum().sort_values("total", ascending=False).head(10)
         chart_clients = alt.Chart(df_clients_sum).mark_bar().encode(
-            x=alt.X("total:Q", axis=alt.Axis(format=",.2f")),
-            y=alt.Y("name:N", sort="-x"),
-            tooltip=["name", alt.Tooltip("total", format=",.2f")]
-        ).properties(height=350)
-        st.altair_chart(chart_clients, use_container_width=True)
-    else:
-        st.info("Sin datos para el ranking de clientes.")
-
-    st.subheader("📈 Evolución mensual por moneda")
-    if not df_filtered.empty:
-        dft = df_filtered.copy()
-        dft["month"] = pd.to_datetime(dft["invoice_date"]).dt.to_period("M").astype(str)
-        df_month_currency = dft.groupby(["month","currency"], as_index=False)["total"].sum().sort_values("month")
-
-        chart_month_currency = alt.Chart(df_month_currency).
